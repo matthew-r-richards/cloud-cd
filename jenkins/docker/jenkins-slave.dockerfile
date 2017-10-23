@@ -10,3 +10,7 @@ RUN curl https://sdk.cloud.google.com | bash && mv google-cloud-sdk /opt
 
 # Install kubectl
 RUN gcloud components install kubectl
+
+# Install any other dependencies
+RUN apt-get update -y \
+    && apt-get install -y jq
