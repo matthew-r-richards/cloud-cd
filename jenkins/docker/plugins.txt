@@ -1,0 +1,4 @@
+blueocean
+kubernetes
+google-source-plugin
+workflow-aggregator

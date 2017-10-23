@@ -1,0 +1,43 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: jenkins
+  namespace: jenkins
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: master
+    spec:
+      securityContext:
+        fsGroup: 1234
+      containers:
+      - name: master
+        image: gcr.io/jenkins-continuous-deployment/jenkins-master:2.85
+        ports:
+        - containerPort: 8080
+        - containerPort: 50000
+        readinessProbe:
+          httpGet:
+            path: /login
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 2
+          failureThreshold: 5
+        volumeMounts:
+        - mountPath: /var/jenkins_home
+          name: jenkins-home
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1500Mi
+          requests:
+            cpu: 500m
+            memory: 1500Mi
+      volumes:
+      - name: jenkins-home
+        gcePersistentDisk:
+          pdName: jenkins-home
+          fsType: ext4
