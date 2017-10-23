@@ -17,6 +17,8 @@ PDISK_SIZE=10GB
 K8S_NAMESPACE=jenkins
 TLS_SECRET_NAME=tls
 INGRESS_NAME=jenkins-ingress
+BOLD=$(tput bold)
+NORMAL=$(tput sgr0)
 
 commandExists() {
   if [[ ! `command -v $1` ]]; then
@@ -26,7 +28,7 @@ commandExists() {
 }
 
 login() {
-    echo "---- Connecting as service account using the key file $KEY_FILE"
+    echo "$BOLD---- Connecting as service account using the key file $KEY_FILE$NORMAL"
     gcloud auth activate-service-account --key-file=$KEY_FILE
 }
 
@@ -35,22 +37,23 @@ apiEnabled() {
 }
 
 checkApis() {
+    echo "$BOLD---- Checking Google APIs for Project$NORMAL"
     if apiEnabled compute.googleapis.com; then
-        echo "---- Compute API already enabled for Project"
+        echo "---- Compute API already enabled"
     else
         echo "---- Enabling Compute API"
         gcloud service-management enable compute.googleapis.com
     fi
 
     if apiEnabled container.googleapis.com; then
-        echo "---- Container Engine API already enabled for Project"
+        echo "---- Container Engine API already enabled"
     else
         echo "---- Enabling Container Engine API"
         gcloud service-management enable container.googleapis.com
     fi
 
     if apiEnabled containerregistry.googleapis.com; then
-        echo "---- Container Registry API already enabled for Project"
+        echo "---- Container Registry API already enabled"
     else
         echo "---- Enabling Container Registry API"
         gcloud service-management enable containerregistry.googleapis.com
@@ -104,7 +107,7 @@ create() {
     login
 
     # Set default project
-    echo "---- Setting default Project to '$PROJECT_ID'"
+    echo "$BOLD---- Setting default Project to '$PROJECT_ID'$NORMAL"
     gcloud config set core/project $PROJECT_ID
 
     # Check the required API(s) are enabled
@@ -112,37 +115,37 @@ create() {
 
     # Build the Jenkins master image and push to the container repo
     IMAGE_TAG="gcr.io/$PROJECT_ID/$MASTER_IMAGE_NAME:$JENKINS_MASTER_VER"
-    echo "---- Build Jenkins Master Docker Image"
+    echo "$BOLD---- Build Jenkins Master Docker Image$NORMAL"
     docker build -t $IMAGE_TAG -f ./jenkins/docker/jenkins-master.dockerfile ./jenkins/docker
-    echo "---- Pushing to Google Container Repository"
+    echo "$BOLD---- Pushing to Google Container Repository$NORMAL"
     gcloud docker -- push $IMAGE_TAG
-    echo "---- Image name is $IMAGE_TAG"
+    echo "$BOLD---- Image name is $IMAGE_TAG$NORMAL"
 
     # Build the Jenkins slave image and push to the container repo
     IMAGE_TAG="gcr.io/$PROJECT_ID/$SLAVE_IMAGE_NAME:$JENKINS_SLAVE_VER"
-    echo "---- Build Jenkins Slave Docker Image"
+    echo "$BOLD---- Build Jenkins Slave Docker Image$NORMAL"
     docker build -t $IMAGE_TAG -f ./jenkins/docker/jenkins-slave.dockerfile ./jenkins/docker
-    echo "---- Pushing to Google Container Repository"
+    echo "$BOLD---- Pushing to Google Container Repository$NORMAL"
     gcloud docker -- push $IMAGE_TAG
-    echo "---- Image name is $IMAGE_TAG"
+    echo "$BOLD---- Image name is $IMAGE_TAG$NORMAL"
 
     # Set default zone
-    echo "---- Setting default Compute Zone to '$CLUSTER_ZONE'"
+    echo "$BOLD---- Setting default Compute Zone to '$CLUSTER_ZONE'$NORMAL"
     gcloud config set compute/zone $CLUSTER_ZONE
 
     # Create a dedicated network for Jenkins
     if networkExists; then
-        echo "---- Network '$NETWORK_NAME' already exists"
+        echo "$BOLD---- Network '$NETWORK_NAME' already exists$NORMAL"
     else
-        echo "---- Creating '$NETWORK_NAME' Network"
-        gcloud compute networks create $NETWORK_NAME --mode auto
+        echo "$BOLD---- Creating '$NETWORK_NAME' Network$NORMAL"
+        gcloud compute networks create $NETWORK_NAME --mode auto 2> /dev/null
     fi
 
     # Create the kubernetes cluster that jenkins will run on
     if clusterExists; then
-        echo "---- Cluster '$CLUSTER_NAME' already exists"
+        echo "$BOLD---- Cluster '$CLUSTER_NAME' already exists$NORMAL"
     else
-        echo "---- Creating '$CLUSTER_NAME' Cluster"
+        echo "$BOLD---- Creating '$CLUSTER_NAME' Cluster$NORMAL"
         gcloud container clusters create $CLUSTER_NAME \
             --network $NETWORK_NAME \
             --scopes storage-rw \
@@ -152,44 +155,44 @@ create() {
 
     # Create the persistent disk for the Jenkins config
     if diskExists; then
-        echo "---- Persistent Disk '$PDISK_NAME' already exists"
+        echo "$BOLD---- Persistent Disk '$PDISK_NAME' already exists$NORMAL"
     else
-        echo "---- Creating Persistent Disk '$PDISK_NAME'"
+        echo "$BOLD---- Creating Persistent Disk '$PDISK_NAME'$NORMAL"
         gcloud compute disks create $PDISK_NAME --size $PDISK_SIZE
     fi
 
     # Create the jenkins kubernetes namespace
     if k8sNamespaceExists; then
-        echo "---- Kubernetes Namespace '$K8S_NAMESPACE' already exists"
+        echo "$BOLD---- Kubernetes Namespace '$K8S_NAMESPACE' already exists$NORMAL"
     else
-        echo "---- Creating Kubernetes Namespace '$K8S_NAMESPACE'"
+        echo "$BOLD---- Creating Kubernetes Namespace '$K8S_NAMESPACE'$NORMAL"
         kubectl create namespace $K8S_NAMESPACE
     fi
 
     # Create the kubernetes services
-    echo "---- Creating Jenkins Services in cluster"
+    echo "$BOLD---- Creating Jenkins Services in cluster$NORMAL"
     kubectl apply -f ./jenkins/k8s/service_jenkins.yaml
 
     # Create the kubernetes deployment
-    echo "---- Creating Jenkins Deployment in cluster"
+    echo "$BOLD---- Creating Jenkins Deployment in cluster$NORMAL"
     kubectl apply -f ./jenkins/k8s/jenkins.yaml
 
     # Create temporary SSL certificate and create a corresponding kubernetes secret
-    echo "---- Creating temporary SSL certificate"
+    echo "$BOLD---- Creating temporary SSL certificate$NORMAL"
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /tmp/tls.key -out /tmp/tls.crt -subj "/CN=jenkins/O=jenkins"
 
     if k8sTlsSecretExists; then
-    echo "---- Deleting existing Jenkins TLS secret in cluster"
+    echo "$BOLD---- Deleting existing Jenkins TLS secret in cluster$NORMAL"
         kubectl -n $K8S_NAMESPACE delete secret $TLS_SECRET_NAME
     fi
-    echo "---- Creating Kubernetes TLS Secret"
+    echo "$BOLD---- Creating Kubernetes TLS Secret$NORMAL"
     kubectl create secret generic $TLS_SECRET_NAME --from-file=/tmp/tls.crt --from-file=/tmp/tls.key --namespace $K8S_NAMESPACE
 
     # Create the ingress resource
-    echo "---- Creating Jenkins Ingress in cluster"
+    echo "$BOLD---- Creating Jenkins Ingress in cluster$NORMAL"
     kubectl apply -f ./jenkins/k8s/ingress_jenkins.yaml
 
-    echo "---- Waiting for external IP...."
+    echo "$BOLD---- Waiting for external IP....$NORMAL"
     EXTERNAL_IP=""
     while [[ -z $EXTERNAL_IP ]]; do
         sleep 10
@@ -198,7 +201,7 @@ create() {
     echo "---- Jenkins can be reached at https://$EXTERNAL_IP"
 
     # Get the initial admin password from the pod
-    echo "---- Waiting for Jenkins to start up"
+    echo "$BOLD---- Waiting for Jenkins to start up....$NORMAL"
     POD_NAME=$(kubectl get pod -n $K8S_NAMESPACE --selector=app=master -o jsonpath="{.items[0].metadata.name}")
 
     if [[ -z $POD_NAME ]]; then
@@ -207,14 +210,14 @@ create() {
     fi
 
     INITIAL_PWD=""
-    while [[ -z INITIAL_PWD ]]; do
+    while [[ -z $INITIAL_PWD ]]; do
         sleep 5
         INITIAL_PWD=$(kubectl exec -n $K8S_NAMESPACE $POD_NAME cat /var/jenkins_home/secrets/initialAdminPassword 2> /dev/null)
     done
     $(echo $INITIAL_PWD > ./initialAdminPassword)
     echo "---- Initial Admin Password is $INITIAL_PWD and is also saved in ./initialAdminPassword"
 
-    echo "---- Complete"
+    echo "$BOLD---- Complete$NORMAL"
 }
 
 delete() {
@@ -227,69 +230,67 @@ delete() {
     checkApis
 
     if k8sNamespaceExists; then
-        echo "---- Deleting $K8S_NAMESPACE namespace"
+        echo "$BOLD---- Deleting $K8S_NAMESPACE namespace$NORMAL"
         kubectl delete ns $K8S_NAMESPACE
     fi
 
     if clusterExists; then
-        echo "---- Deleting $CLUSTER_NAME cluster"
+        echo "$BOLD---- Deleting $CLUSTER_NAME cluster$NORMAL"
         gcloud container clusters delete $CLUSTER_NAME --zone $CLUSTER_ZONE --quiet
     fi
 
     if diskExists; then
-        echo "---- Deleting $PDISK_NAME persistent disk"
+        echo "$BOLD---- Deleting $PDISK_NAME persistent disk$NORMAL"
         gcloud compute disks delete $PDISK_NAME --zone $CLUSTER_ZONE --quiet
     fi
 
-    echo "---- Deleting firewall rules"
+    echo "$BOLD---- Deleting firewall rules$NORMAL"
     for rule in $(gcloud compute firewall-rules list --filter network~jenkins --format='value(name)'  2> /dev/null); do
         echo "Deleting $rule..."
         gcloud compute firewall-rules delete $rule --quiet
     done
 
-    echo "---- Deleting forwarding rules"
+    echo "$BOLD---- Deleting forwarding rules$NORMAL"
     for rule in $(gcloud compute forwarding-rules list --filter="name~.*$K8S_NAMESPACE-$INGRESS_NAME.*"  --format='value(name)' 2> /dev/null); do
         echo "Deleting $rule..."
         gcloud compute forwarding-rules delete $rule --global --quiet
     done
 
-    echo "---- Deleting addresses"
+    echo "$BOLD---- Deleting addresses$NORMAL"
     for address in $(gcloud compute addresses list --filter="name~.*$K8S_NAMESPACE-$INGRESS_NAME.*"  --format='value(name)' 2> /dev/null); do
      gcloud compute addresses delete $address --global --quiet
     done
 
-    echo "---- Deleting HTTPS proxies"
+    echo "$BOLD---- Deleting HTTPS proxies$NORMAL"
     for proxy in $(gcloud compute target-https-proxies list --filter="name~.*$K8S_NAMESPACE-$INGRESS_NAME.*"  --format='value(name)' 2> /dev/null); do
         echo "Deleting $proxy..."
         gcloud compute target-https-proxies delete $proxy --quiet
     done
 
-    echo "---- Deleting SSL certificates"
+    echo "$BOLD---- Deleting SSL certificates$NORMAL"
     for cert in $(gcloud compute ssl-certificates list --filter="name~.*$K8S_NAMESPACE-$INGRESS_NAME.*"  --format='value(name)' 2> /dev/null); do
         echo "Deleting $cert..."
         gcloud compute ssl-certificates delete $cert --quiet
     done
 
-    echo "---- Deleting target pools"
+    echo "$BOLD---- Deleting target pools$NORMAL"
     for target in $(gcloud compute target-pools list --filter="name~.*$K8S_NAMESPACE-$INGRESS_NAME.*"  --format='value(name)' 2> /dev/null); do
         echo "Deleting $target"
         gcloud compute target-pools delete $target --quiet
     done
 
-    echo "---- Deleting URL maps"
+    echo "$BOLD---- Deleting URL maps$NORMAL"
     for url in $(gcloud compute url-maps list --filter="name~.*$K8S_NAMESPACE-$INGRESS_NAME.*"  --format='value(name)' 2> /dev/null); do
         echo "Deleting $url"
         gcloud compute url-maps delete $url --quiet
     done
 
-    # Firewall rules, load-balancing, health-checks, backends, frontends etc.
-
     if networkExists; then
-        echo "---- Deleting $NETWORK_NAME network"
+        echo "$BOLD---- Deleting $NETWORK_NAME network$NORMAL"
         gcloud compute networks delete $NETWORK_NAME --quiet
     fi
 
-    echo "---- Complete"
+    echo "$BOLD---- Complete$NORMAL"
 }
 
 if [[ -z $1 ]] | [[ -z $2 ]]; then
