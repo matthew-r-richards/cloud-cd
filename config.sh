@@ -1,0 +1,13 @@
+PROJECT_ID=jenkins-continuous-deployment
+MASTER_IMAGE=jenkins-master:2.85
+SLAVE_IMAGE=jenkins-slave:3.7-1
+NETWORK_NAME=jenkins
+CLUSTER_NAME=jenkins-cd
+CLUSTER_ZONE=europe-west3-a
+CLUSTER_NODE_COUNT=1
+CLUSTER_NODE_TYPE=n1-standard-2
+PDISK_NAME=jenkins-home
+PDISK_SIZE=10GB
+K8S_NAMESPACE=jenkins
+TLS_SECRET_NAME=tls
+INGRESS_NAME=jenkins-ingress
