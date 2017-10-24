@@ -13,6 +13,20 @@ delete() {
     # Check that the gcloud SDK is available
     commandExists gcloud
 
+    echo "$BOLD---- Reading configuration from .lastconfig$NORMAL"
+    CONFIG_FILE="./.lastconfig"
+    if [[ ! -f $CONFIG_FILE ]]; then
+        echo ".lastconfig file not found"
+        exit
+    fi
+
+    while read -r line; do
+        NAME=$(sed 's/=.*$//' <<< $line)
+        VALUE=$(sed 's/^.*=//' <<< $line)
+        echo "$NAME = $VALUE"
+        declare $NAME=$VALUE
+    done < $CONFIG_FILE
+
     gcloudLogin $KEY_FILE
 
     # Check the required API(s) are enabled
@@ -81,35 +95,5 @@ delete() {
 
     echo "$BOLD---- Complete$NORMAL"
 }
-
-if [[ -z $1 ]] || [[ -z $2 ]]; then
-    echo Usage delete-cluster.sh [jenkins/teamcity] [path-to-key-file.json]
-    exit
-else
-    TYPE=$1
-    KEY_FILE=$2
-fi
-
-if [[ ! -f $KEY_FILE ]]; then
-    echo "Key file $KEY_FILE not found"
-    exit
-fi
-
-if [[ $TYPE = "jenkins" ]]; then
-    NETWORK_NAME=$JENKINS_NETWORK_NAME
-    CLUSTER_NAME=$JENKINS_CLUSTER_NAME
-    PDISK_NAME=$JENKINS_PDISK_NAME
-    K8S_NAMESPACE=$JENKINS_K8S_NAMESPACE
-    INGRESS_NAME=$JENKINS_INGRESS_NAME
-elif [[ $TYPE = "teamcity" ]]; then
-    NETWORK_NAME=$TEAMCITY_NETWORK_NAME
-    CLUSTER_NAME=$TEAMCITY_CLUSTER_NAME
-    PDISK_NAME=$TEAMCITY_PDISK_NAME
-    K8S_NAMESPACE=$TEAMCITY_K8S_NAMESPACE
-    INGRESS_NAME=$TEAMCITY_INGRESS_NAME
-else
-    echo "Unknown deployment type: $TYPE"
-    exit
-fi
 
 delete

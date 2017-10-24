@@ -13,6 +13,18 @@ isJenkinsCluster() {
     [[ $TYPE = "jenkins" ]]
 }
 
+writeConfig() {
+    CONFIG_FILE=.lastconfig
+    rm $CONFIG_FILE
+    echo "PROJECT_ID=$PROJECT_ID" >> $CONFIG_FILE
+    echo "KEY_FILE=$KEY_FILE" >> $CONFIG_FILE
+    echo "NETWORK_NAME=$NETWORK_NAME" >> $CONFIG_FILE
+    echo "CLUSTER_NAME=$CLUSTER_NAME" >> $CONFIG_FILE
+    echo "PDISK_NAME=$PDISK_NAME" >> $CONFIG_FILE
+    echo "K8S_NAMESPACE=$K8S_NAMESPACE" >> $CONFIG_FILE
+    echo "INGRESS_NAME=$INGRESS_NAME" >> $CONFIG_FILE
+}
+
 create() {
     # Check that the binary dependencies are available
     commandExists gcloud
@@ -180,4 +192,5 @@ else
     exit
 fi
 
+writeConfig
 create
