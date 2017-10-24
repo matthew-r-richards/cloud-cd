@@ -1,0 +1,15 @@
+---
+  kind: Service
+  apiVersion: v1
+  metadata:
+    name: teamcity
+    namespace: teamcity
+  spec:
+    type: NodePort
+    selector:
+      app: server
+    ports:
+      - protocol: TCP
+        port: 8111
+        targetPort: 8111
+        name: ui

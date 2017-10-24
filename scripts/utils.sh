@@ -1,7 +1,3 @@
-# Formatting constants
-BOLD=$(tput bold)
-NORMAL=$(tput sgr0)
-
 # usage - commandExists [command-name]
 commandExists() {
   if [[ ! `command -v $1` ]]; then
