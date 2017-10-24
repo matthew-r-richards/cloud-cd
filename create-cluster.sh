@@ -172,24 +172,40 @@ if [[ ! -f $KEY_FILE ]]; then
 fi
 
 if [[ $TYPE = "jenkins" ]]; then
+
+    CLUSTER_NAME=$JENKINS_CLUSTER_NAME
     MASTER_IMAGE=$JENKINS_MASTER_IMAGE
     SLAVE_IMAGE=$JENKINS_SLAVE_IMAGE
-    NETWORK_NAME=$JENKINS_NETWORK_NAME
-    CLUSTER_NAME=$JENKINS_CLUSTER_NAME
-    PDISK_NAME=$JENKINS_PDISK_NAME
-    K8S_NAMESPACE=$JENKINS_K8S_NAMESPACE
-    INGRESS_NAME=$JENKINS_INGRESS_NAME
+
+    NETWORK_NAME=jenkins
+
+    # make sure any changes to the following variables
+    # are also carried out in the corresponding K8S
+    # deployment/service/ingress definitions
+    K8S_NAMESPACE=jenkins
+    PDISK_NAME=jenkins-home
+    INGRESS_NAME=jenkins-ingress
+
 elif [[ $TYPE = "teamcity" ]]; then
+
+    CLUSTER_NAME=$TEAMCITY_CLUSTER_NAME
     MASTER_IMAGE=$TEAMCITY_SERVER_IMAGE
     SLAVE_IMAGE=$TEAMCITY_AGENT_IMAGE
-    NETWORK_NAME=$TEAMCITY_NETWORK_NAME
-    CLUSTER_NAME=$TEAMCITY_CLUSTER_NAME
-    PDISK_NAME=$TEAMCITY_PDISK_NAME
-    K8S_NAMESPACE=$TEAMCITY_K8S_NAMESPACE
-    INGRESS_NAME=$TEAMCITY_INGRESS_NAME
+
+    NETWORK_NAME=teamcity
+
+    # make sure any changes to the following variables
+    # are also carried out in the corresponding K8S
+    # deployment/service/ingress definitions
+    PDISK_NAME=teamcity-data
+    K8S_NAMESPACE=teamcity
+    INGRESS_NAME=teamcity-ingress
+
 else
+
     echo "Unknown deployment type: $TYPE"
     exit
+    
 fi
 
 writeConfig
