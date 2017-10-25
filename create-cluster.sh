@@ -139,7 +139,7 @@ create() {
     if isJenkinsCluster; then
         # Get the initial admin password from the pod
         echo "$BOLD---- Waiting for Jenkins to start up....$NORMAL"
-        POD_NAME=$(kubectl get pod -n $K8S_NAMESPACE --selector=app=master -o jsonpath="{.items[0].metadata.name}")
+        POD_NAME=$(kubectl get pod -n $K8S_NAMESPACE --selector=app=master -o jsonpath="{.items[0].metadata.name}" 2> /dev/null)
 
         if [[ -z $POD_NAME ]]; then
             echo "Jenkins master pod not found in $K8S_NAMESPACE namespace"
@@ -158,12 +158,13 @@ create() {
     echo "$BOLD---- Complete$NORMAL"
 }
 
-if [[ -z $1 ]] || [[ -z $2 ]]; then
-    echo Usage create-cluster.sh [jenkins/teamcity] [path-to-key-file.json]
+if [[ -z $1 ]] || [[ -z $2 ]] || [[ -z $3 ]]; then
+    echo Usage create-cluster.sh [jenkins/teamcity] [project-id] [path-to-key-file.json]
     exit
 else
     TYPE=$1
-    KEY_FILE=$2
+    PROJECT_ID=$2
+    KEY_FILE=$3
 fi
 
 if [[ ! -f $KEY_FILE ]]; then

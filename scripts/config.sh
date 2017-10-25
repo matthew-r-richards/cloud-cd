@@ -1,5 +1,4 @@
-PROJECT_ID=jenkins-continuous-deployment
-CLUSTER_ZONE=europe-west3-a
+CLUSTER_ZONE=europe-west2-a
 CLUSTER_NODE_COUNT=1
 CLUSTER_NODE_TYPE=n1-standard-2
 # Persistent Disk for data / config storage
