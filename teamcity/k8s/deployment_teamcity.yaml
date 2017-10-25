@@ -17,14 +17,6 @@ spec:
         image: gcr.io/jenkins-continuous-deployment/tc-server:2017.1.5
         ports:
         - containerPort: 8111
-        readinessProbe:
-          httpGet:
-            path: /mnt
-            port: 8111
-          periodSeconds: 10
-          timeoutSeconds: 5
-          successThreshold: 2
-          failureThreshold: 5
         volumeMounts:
         - mountPath: /data/teamcity_server/datadir
           name: teamcity-data
