@@ -30,6 +30,6 @@ buildTeamcityImages() {
 
 # usage - pushToGCR [image-tag]
 pushToGCR() {
-    echo "$BOLD---- Pushing to Google Container Repository$NORMAL"
+    echo "$BOLD---- Pushing to Google Container Registry$NORMAL"
     gcloud docker -- push $1
 }

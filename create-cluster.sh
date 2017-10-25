@@ -139,7 +139,7 @@ create() {
 
     printf "$BOLD---- Waiting for load balancer configuration to complete $NORMAL"
     STATUS_CODE=0
-    while [[ $STATUS_CODE != 200 ]]; do
+    while [[ $STATUS_CODE != "200" ]]; do
         printf "."
         STATUS_CODE=$(curl -s -o /dev/null -I -k -w "%{http_code}" https://$EXTERNAL_IP$TEST_ENDPOINT)
         sleep 5
