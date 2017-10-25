@@ -128,29 +128,29 @@ create() {
         kubectl apply -f ./teamcity/k8s/ingress_teamcity.yaml
     fi
 
-    echo "$BOLD---- Waiting for external IP....$NORMAL"
+    printf "$BOLD---- Waiting for external IP $NORMAL"
     EXTERNAL_IP=""
     while [[ -z $EXTERNAL_IP ]]; do
-        sleep 10
+        printf "."
         EXTERNAL_IP=$(kubectl get -n $K8S_NAMESPACE ingress/$INGRESS_NAME --template="{{range .status.loadBalancer.ingress}}{{.ip}}{{end}}")
+        sleep 5
     done
-    echo "The application can be reached at https://$EXTERNAL_IP"
+    echo " ready"
+
+    printf "$BOLD---- Waiting for load balancer configuration to complete $NORMAL"
+    STATUS_CODE=0
+    while [[ $STATUS_CODE != 200 ]]; do
+        printf "."
+        STATUS_CODE=$(curl -s -o /dev/null -I -k -w "%{http_code}" https://$EXTERNAL_IP$TEST_ENDPOINT)
+        sleep 5
+    done
+    echo " ready"
+    echo "The application can be reached at https://$EXTERNAL_IP" 
 
     if isJenkinsCluster; then
         # Get the initial admin password from the pod
-        echo "$BOLD---- Waiting for Jenkins to start up....$NORMAL"
         POD_NAME=$(kubectl get pod -n $K8S_NAMESPACE --selector=app=master -o jsonpath="{.items[0].metadata.name}" 2> /dev/null)
-
-        if [[ -z $POD_NAME ]]; then
-            echo "Jenkins master pod not found in $K8S_NAMESPACE namespace"
-            exit
-        fi
-
-        INITIAL_PWD=""
-        while [[ -z $INITIAL_PWD ]]; do
-            sleep 5
-            INITIAL_PWD=$(kubectl exec -n $K8S_NAMESPACE $POD_NAME cat /var/jenkins_home/secrets/initialAdminPassword 2> /dev/null)
-        done
+        INITIAL_PWD=$(kubectl exec -n $K8S_NAMESPACE $POD_NAME cat /var/jenkins_home/secrets/initialAdminPassword 2> /dev/null)
         $(echo $INITIAL_PWD > ./jenkins/initialAdminPassword)
         echo "Initial Admin Password is $INITIAL_PWD and is also saved in ./jenkins/initialAdminPassword"
     fi
@@ -179,6 +179,7 @@ if [[ $TYPE = "jenkins" ]]; then
     SLAVE_IMAGE=$JENKINS_SLAVE_IMAGE
 
     NETWORK_NAME=jenkins
+    TEST_ENDPOINT=/login
 
     # make sure any changes to the following variables
     # are also carried out in the corresponding K8S
@@ -192,6 +193,7 @@ elif [[ $TYPE = "teamcity" ]]; then
     CLUSTER_NAME=$TEAMCITY_CLUSTER_NAME
     MASTER_IMAGE=$TEAMCITY_SERVER_IMAGE
     SLAVE_IMAGE=$TEAMCITY_AGENT_IMAGE
+    TEST_ENDPOINT=/mnt
 
     NETWORK_NAME=teamcity
 
