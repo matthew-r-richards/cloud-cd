@@ -20,7 +20,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /mnt
-            port: 8080
+            port: 8111
           periodSeconds: 10
           timeoutSeconds: 5
           successThreshold: 2
