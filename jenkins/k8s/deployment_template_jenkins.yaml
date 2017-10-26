@@ -14,7 +14,7 @@ spec:
         fsGroup: 1234
       containers:
       - name: master
-        image: gcr.io/jenkins-continuous-deployment/jenkins-master:2.85
+        image: %MASTER_IMAGE%
         ports:
         - containerPort: 8080
         - containerPort: 50000

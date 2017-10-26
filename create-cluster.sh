@@ -52,8 +52,10 @@ create() {
 
     if isJenkinsCluster; then
         buildJenkinsImages $MASTER_IMAGE_TAG $SLAVE_IMAGE_TAG
+        updateJenkinsDeployment $MASTER_IMAGE_TAG
     else
         buildTeamcityImages $MASTER_IMAGE_TAG $SLAVE_IMAGE_TAG
+        updateTeamcityDeployment $MASTER_IMAGE_TAG $SLAVE_IMAGE_TAG
     fi
 
     # Create a dedicated network
@@ -141,7 +143,7 @@ create() {
     STATUS_CODE=0
     while [[ $STATUS_CODE != "200" ]]; do
         printf "."
-        STATUS_CODE=$(curl -s -o /dev/null -I -k -w "%{http_code}" https://$EXTERNAL_IP$TEST_ENDPOINT)
+        STATUS_CODE=$(curl -s -o /dev/null -I -k -w "%{http_code}" https://$EXTERNAL_IP$TEST_ENDPOINT 2> /dev/null)
         sleep 5
     done
     echo " ready"

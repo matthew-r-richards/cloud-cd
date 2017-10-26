@@ -14,9 +14,17 @@ spec:
         fsGroup: 1234
       containers:
       - name: server
-        image: gcr.io/jenkins-continuous-deployment/tc-server:2017.1.5
+        image: %SERVER_IMAGE%
         ports:
         - containerPort: 8111
+        readinessProbe:
+          httpGet:
+            path: /mnt
+            port: 8080
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 2
+          failureThreshold: 5
         volumeMounts:
         - mountPath: /data/teamcity_server/datadir
           name: teamcity-data
@@ -48,7 +56,7 @@ spec:
     spec:
       containers:
       - name: agent
-        image: gcr.io/jenkins-continuous-deployment/tc-agent:2017.1.5
+        image: %AGENT_IMAGE%
         volumeMounts:
         - mountPath: /usr/bin/docker
           name: docker-bin
