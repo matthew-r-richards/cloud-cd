@@ -6,10 +6,10 @@ PDISK_SIZE=10GB
 
 # Jenkins configuration
 JENKINS_CLUSTER_NAME=jenkins-cd
-JENKINS_MASTER_IMAGE=jenkins-master:2.85
-JENKINS_SLAVE_IMAGE=jenkins-slave:3.7-1
+JENKINS_MASTER_IMAGE=jenkins-master:1.0.0
+JENKINS_SLAVE_IMAGE=jenkins-slave:1.0.0
 
 # Teamcity configuration
 TEAMCITY_CLUSTER_NAME=teamcity-cd
-TEAMCITY_SERVER_IMAGE=tc-server:2017.1.5
-TEAMCITY_AGENT_IMAGE=tc-agent:2017.1.5
+TEAMCITY_SERVER_IMAGE=tc-server:1.0.0
+TEAMCITY_AGENT_IMAGE=tc-agent:1.0.0
