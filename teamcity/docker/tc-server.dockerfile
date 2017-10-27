@@ -2,7 +2,9 @@ FROM jetbrains/teamcity-server:2017.1.5
 
 COPY ./plugins /usr/share/tc/plugins
 COPY ./start-teamcity.sh /start-teamcity.sh
+COPY ./health-check ./opt/teamcity/webapps/health
 
-# Copy the plugins into the data directory at runtime, otherwise
-# they will be wiped when the data volume is mounted
+# Teamcity server port 
+EXPOSE 8111
+
 CMD ["/start-teamcity.sh"]

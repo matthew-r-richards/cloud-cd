@@ -19,7 +19,7 @@ spec:
         - containerPort: 8111
         readinessProbe:
           httpGet:
-            path: /mnt
+            path: /health/
             port: 8111
           periodSeconds: 10
           timeoutSeconds: 5

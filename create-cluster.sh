@@ -46,7 +46,7 @@ create() {
     echo "$BOLD---- Setting default Compute Zone to '$CLUSTER_ZONE'$NORMAL"
     gcloud config set compute/zone $CLUSTER_ZONE
 
-    # Build the Jenkins images and push to the container repo
+    # Build the images and push to the container repo
     MASTER_IMAGE_TAG="gcr.io/$PROJECT_ID/$MASTER_IMAGE"
     SLAVE_IMAGE_TAG="gcr.io/$PROJECT_ID/$SLAVE_IMAGE"
 
@@ -137,13 +137,13 @@ create() {
         EXTERNAL_IP=$(kubectl get -n $K8S_NAMESPACE ingress/$INGRESS_NAME --template="{{range .status.loadBalancer.ingress}}{{.ip}}{{end}}")
         sleep 5
     done
-    echo " ready"
+    echo " $EXTERNAL_IP"
 
     printf "$BOLD---- Waiting for load balancer configuration to complete $NORMAL"
     STATUS_CODE=0
     while [[ $STATUS_CODE != "200" ]]; do
         printf "."
-        STATUS_CODE=$(curl -s -o /dev/null -I -k -w "%{http_code}" https://$EXTERNAL_IP$TEST_ENDPOINT 2> /dev/null)
+        STATUS_CODE=$(curl -s -o /dev/null -I -k -w "%{http_code}" https://$EXTERNAL_IP$TEST_ENDPOINT || true)
         sleep 5
     done
     echo " ready"
@@ -195,7 +195,7 @@ elif [[ $TYPE = "teamcity" ]]; then
     CLUSTER_NAME=$TEAMCITY_CLUSTER_NAME
     MASTER_IMAGE=$TEAMCITY_SERVER_IMAGE
     SLAVE_IMAGE=$TEAMCITY_AGENT_IMAGE
-    TEST_ENDPOINT=/mnt
+    TEST_ENDPOINT=/health/
 
     NETWORK_NAME=teamcity
 

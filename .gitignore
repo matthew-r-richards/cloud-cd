@@ -3,3 +3,4 @@ service-account.json
 .lastconfig
 deployment_jenkins.yaml
 deployment_teamcity.yaml
+.vscode

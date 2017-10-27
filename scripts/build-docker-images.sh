@@ -44,5 +44,7 @@ updateJenkinsDeployment() {
 updateTeamcityDeployment() {
     echo "$BOLD---- Updating Teamcity K8S Deployment with Server Image Tag $1$NORMAL"
     echo "$BOLD---- Updating Teamcity K8S Deployment with Agent Image Tag $2$NORMAL"
-    sed -e s#%SERVER_IMAGE%#$1# -e s#%AGENT_IMAGE%#$2# <./teamcity/k8s/deployment_template_teamcity.yaml >./teamcity/k8s/deployment_teamcity.yaml
+    sed -e s#%SERVER_IMAGE%#$1# \
+        -e s#%AGENT_IMAGE%#$2# \
+        <./teamcity/k8s/deployment_template_teamcity.yaml >./teamcity/k8s/deployment_teamcity.yaml
 }
