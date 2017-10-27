@@ -62,6 +62,8 @@ spec:
           name: docker-bin
         - mountPath: /var/run/docker.sock
           name: docker-sock
+        - mountPath: /secrets
+          name: svc-account
       volumes:
       - name: docker-bin
         hostPath:
@@ -69,3 +71,6 @@ spec:
       - name: docker-sock
         hostPath:
           path: /var/run/docker.sock
+      - name: svc-account
+        secret:
+          secretName: svc-account

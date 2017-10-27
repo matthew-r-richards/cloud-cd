@@ -102,7 +102,6 @@ create() {
         kubectl apply -f ./teamcity/k8s/service_teamcity.yaml
     fi
 
-
     # Create the kubernetes deployment
     echo "$BOLD---- Creating Deployment in cluster$NORMAL"
     if isJenkinsCluster; then
@@ -115,12 +114,21 @@ create() {
     echo "$BOLD---- Creating temporary SSL certificate$NORMAL"
     openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /tmp/tls.key -out /tmp/tls.crt -subj "/CN=jenkins/O=jenkins"
 
-    if k8sTlsSecretExists $K8S_NAMESPACE tls; then
+    if k8sSecretExists $K8S_NAMESPACE tls; then
     echo "$BOLD---- Deleting existing TLS secret in cluster$NORMAL"
         kubectl -n $K8S_NAMESPACE delete secret tls
     fi
     echo "$BOLD---- Creating Kubernetes TLS Secret$NORMAL"
     kubectl create secret generic tls --from-file=/tmp/tls.crt --from-file=/tmp/tls.key --namespace $K8S_NAMESPACE
+
+    if ! isJenkinsCluster; then
+        if k8sSecretExists $K8S_NAMESPACE svc-account; then
+            echo "$BOLD---- Deleting existing GCloud Service Account secret in cluster$NORMAL"
+            kubectl -n $K8S_NAMESPACE delete secret svc-account
+        fi
+        echo "$BOLD---- Creating Kubernetes GCloud Service Account Secret$NORMAL"
+        kubectl create secret generic svc-account --from-file=service-account.json=$KEY_FILE --namespace $K8S_NAMESPACE
+    fi
 
     # Create the ingress resource
     echo "$BOLD---- Creating Ingress in cluster$NORMAL"

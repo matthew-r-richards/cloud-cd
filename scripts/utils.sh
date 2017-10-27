@@ -50,7 +50,7 @@ k8sNamespaceExists() {
     [[ ! -z $(kubectl get namespaces 2>&1 | grep $1) ]]
 }
 
-# usage - k8sTlsSecretExists [namespace] [secret-name]
-k8sTlsSecretExists() {
+# usage - k8sSecretExists [namespace] [secret-name]
+k8sSecretExists() {
     [[ ! -z $(kubectl get secrets -n $1 2>&1 | grep $2) ]]
 }
