@@ -2,13 +2,16 @@
 
 Jenkins or Teamcity Continuous Deployment entirely in the cloud - running on and deploying to Google Container Engine.
 
-Abbreviations:
+Abbreviations used:
 
 * CD: Continuous Deployment
 * GKE: Google Container Engine
+* GCR: Google Container Registry (docker image repository)
 * GCE: Google Compute Engine
 * K8S: Kubernetes
 * VCS: Version Control System (e.g. Git)
+
+Jenkins and Teamcity both have a master-slave architecture for builds, there is a central build server (the master) and this manages one or more build agents (the slaves) to perform builds. Jenkins uses the terminology `master` and `slave`, whereas Teamcity uses `server` and `agent`. In the following instructions, `master / server` can be used interchangeably, as can `slave / agent`.
 
 ## Objectives
 
@@ -28,8 +31,8 @@ A Google Cloud project is required in order to contain the cluster and all the r
 
 A Google Cloud service account is required in order for the cluster setup script to carry out actions using the [Google Cloud SDK](https://cloud.google.com/sdk/). The account can be created and the required key file (in JSON format) obtained as follows:
 
-1) [create the service account](https://cloud.google.com/iam/docs/creating-managing-service-accounts#creating_a_service_account) within the project, granting the account the `Editor` role
-1) [obtain the service account key](https://cloud.google.com/iam/docs/creating-managing-service-account-keys) and store the downloaded JSON file in a suitable location
+1) [Create the service account](https://cloud.google.com/iam/docs/creating-managing-service-accounts#creating_a_service_account) within the project, granting the account the `Editor` role
+1) [Obtain the service account key](https://cloud.google.com/iam/docs/creating-managing-service-account-keys) and store the downloaded JSON file in a suitable location
 
 ## Getting Started
 
@@ -40,16 +43,18 @@ This can be run using the following command:
 
 `create-cluster.sh [jenkins/teamcity] [project-id] [path-to-service-account-key.json]`
 
-The service account key file and the Project ID must be obtained before running the script.
+The service account key file and the Project ID must be obtained before running the script, see *Pre-requisites*.
 
 For example, to create a jenkins cluster in the `jenkins-cd` project, using the service account file `service-account.json`:
 
-1) create the service account and export the key to `service-account.json` as described in *Pre-requisites » Service Account*
-1) run `create-cluster.sh jenkins jenkins-cd service-account.json`
+1) Create the service account and export the key to `service-account.json` as described in *Pre-requisites » Service Account*
+1) Run `create-cluster.sh jenkins jenkins-cd service-account.json`
 
 The creation process will take several minutes. At the end of it, you will be given the IP address to access the system on.
 
 **Note:** it might take 10-15 minutes for the Load Balancer configuration to be replicated, therefore the system may not be accessible immediately.
+
+As part of the script process, the local configuration for the [Kubernetes CLI](https://kubernetes.io/docs/user-guide/kubectl-overview/), `kubectl`, will be set so that it is authenticated for the newly created cluster - `kubectl` can be used from the terminal as normal, with commands executed against the cluster.
 
 #### Configuration
 
@@ -65,16 +70,31 @@ Once the ingress configuration is complete, going to the Jenkins URL should take
 
 Once the initial setup is complete, the remaining steps are:
 
-1) configure the [Kubernetes plugin](https://wiki.jenkins.io/display/JENKINS/Google+Source+Plugin) to pick up the kubernetes cluster service account credentials (allows use of `kubectl` commands in the build without any further authentication) - [instructions](https://cloud.google.com/solutions/configuring-jenkins-container-engine#adding_kubernetes_credentials)
-1) configure the [Google Authenticated Source plugin](https://wiki.jenkins.io/display/JENKINS/Google+Source+Plugin) to pick up the Google cloud service account credentials from metadata (allows use of `gcloud` commands in the build without any further authentication) - [instructions](https://cloud.google.com/solutions/configuring-jenkins-container-engine#adding_google_service_account_credentials)
-1) configure the Jenkins build executors to be created from the `jenkins-slave` image produced as part of the `create-cluster.sh` script - [instructions](https://cloud.google.com/solutions/configuring-jenkins-container-engine#configuring_the_build_executors) (use the full `gcr.io/[$PROJECT_ID]/[JENKINS_SLAVE_IMAGE]` repository path when specifying the docker image to use)
-1) (Optionally) configure the slave pod template created in step *3* to have access to the kubernetes cluster docker daemon - see *Docker in the Build Process*
+1) Configure the [Kubernetes plugin](https://wiki.jenkins.io/display/JENKINS/Google+Source+Plugin) to pick up the kubernetes cluster service account credentials (allows use of `kubectl` commands in the build without any further authentication) - [instructions](https://cloud.google.com/solutions/configuring-jenkins-container-engine#adding_kubernetes_credentials)
+1) Configure the [Google Authenticated Source plugin](https://wiki.jenkins.io/display/JENKINS/Google+Source+Plugin) to pick up the Google cloud service account credentials from metadata (allows use of `gcloud` commands in the build without any further authentication) - [instructions](https://cloud.google.com/solutions/configuring-jenkins-container-engine#adding_google_service_account_credentials)
+1) Configure the kubernetes plugin to create Jenkins build executors from the `jenkins-slave` image produced as part of the `create-cluster.sh` script - [instructions](https://cloud.google.com/solutions/configuring-jenkins-container-engine#configuring_the_build_executors)  
+  **Note:** use the full `gcr.io/[$PROJECT_ID]/[JENKINS_SLAVE_IMAGE]` repository path when specifying the docker image to use. This is output during the `create-cluster.sh` script execution
+1) (Optionally) Configure the slave pod template created in step *3* to have access to the kubernetes cluster docker daemon - see *Docker in the Build Process*
 
 At this point, Jenkins is ready for builds to be defined. These builds will run in one or more pods in the cluster, based on the template defined in step *3* above.
 
 ### Setting up Teamcity within the Cluster
 
 Once the ingress configuration is complete, going to the Teamcity URL should take you to the initial setup:
+
+1) Click 'Proceed' on the information screens about the Teamcity data directory and the database type (internal is sufficient for these purposes) and then wait for the initialisation process to complete (this may take a while due to the server pod CPU limit)
+1) Accept the license agreement
+1) Create an Administrator account as required
+
+Once the initial setup is complete, the remaining steps are:
+
+1) Create a Teamcity project to contain the build definitions
+1) In the administrator panel for the project, go to 'Cloud Profiles'
+TODO
+1) Configure the [Team City Kubernetes plugin](https://github.com/JetBrains/teamcity-kubernetes-plugin)
+1) (Optional, already done in `teamcity/k8s/deployment_teamcity.yaml`) Configure the agent deployment to give the agent pod access to the kubernetes cluster docker daemon - see *Docker in the Build Process*
+
+To include additional plugins when the Teamcity server image is built, place the downloaded plugin `.zip` files into the `teamcity/docker/plugins` folder. Any changes to the contents of this folder will require the `create-cluster.sh` script to be re-run to re-deploy the updated `tc-server` image (it is recommended to increment the version number as well, see *Updating the Jenkins or Teamcity Images*).
 
 ### Docker in the Build Process
 
@@ -103,13 +123,13 @@ The `delete-cluster.sh` script can be run to remove the cluster and all of the r
 
 The continuous deployment process we are aiming for is:
 
-1) build is triggered by VCS commit (or manually)
-1) create the slave/agent pod to use during the build - the following steps all run within this pod
-1) pull changes from VCS
-1) build the code, run tests (unit, integration, automated acceptance etc.)
-1) build docker image(s)
-1) push this image to the Google Cloud Repository
-1) update the K8S deployment with the details of the new image (triggering a rolling update)
+1) Build is triggered by VCS commit (or manually)
+1) Create the slave/agent pod to use during the build - subsequent steps all run within this pod
+1) Pull changes from VCS
+1) Build the code, run tests (unit, integration, automated acceptance etc.)
+1) Build docker image(s)
+1) Push this image to the Google Cloud Repository
+1) Update the K8S deployment with the details of the new image (triggering a rolling update)
 
 In the following sections, we will refer to Jenkins/Teamcity as the *CD server*, and the actual code being built and deployed by the CD process as the *application*.
 
@@ -128,13 +148,28 @@ If you prefer the CD server and deployed application to exist on different clust
 
 The Jenkins build can be created using any of the built-in types (e.g. freestyle, pipeline, multi-branch pipeline). Using the pipeline or multi-branch pipeline options allows use of a `Jenkinsfile`, moving the build configuration into your VCS.
 
-A sample `Jenkinsfile` can be found for the `sample-app` application - `sample-app/Jenkinsfile`. This is designed to be used within a multi-branch pipeline, as this will automatically detect and build new VCS branches.
+A sample `Jenkinsfile` can be found for the `sample-app` application - `sample-app/Jenkinsfile`. Breaking this down for a `master` branch commit:
+1) `sh("docker build -t ${imageTag} .")` - build the docker image, where `imageTag` is based on the branch name and jenkins build number
+1) `sh("docker run ${imageTag} go test")` - run the image in a container to execute some tests
+1) `sh("gcloud docker -- push ${imageTag}")` - push the docker image to GCR
+1) `sh("kubectl get ns production || kubectl create ns production")` - create the K8S `production` namespace if it doesn't exist
+1) `sh("sed -i.bak 's#gcr.io/cloud-solutions-images/gceme:1.0.0#${imageTag}#' ./k8s/production/*.yaml")` - update the application deployment with the new `imageTag`, see step *1*
+1) `sh("kubectl --namespace=production apply -f k8s/services/")` - apply the application service definitions
+1) `sh("kubectl --namespace=production apply -f k8s/canary/")` - apply the application deployment definitions (which have been updated with the new image)
 
-This sample also has an example of the 'Canary' build pattern, whereby changes to the `canary` branch are built and deployed to a small number of pods in the `production` namespace for testing with a limited set of users. Once approved, the `canary` branch can be merged back into `master`, which will trigger a deployment to the rest of the `production` pods.
+This sample also has an example of the 'Canary' build pattern, whereby changes to the `canary` branch are built and deployed to a small number of pods in the `production` namespace for testing with a limited set of users. This is done using a separate deployment for the canary pods, meaning they can be updated separately to the rest of the pods in the `production` namespace. Once approved, the `canary` branch can be merged back into `master`, which will trigger a deployment to the rest of the `production` pods.
+
+Commits to branches that aren't `canary` or `master` (i.e. development branches) will be deployed to a namespace of the same name and will not be exposed externally (you have to use `kubectl proxy` to create a proxy to the service on the cluster).
 
 As mentioned in *Docker in the Build Process*, the docker daemon can be mounted from the host kubernetes cluster. This allows the docker commands in the `Jenkinsfile` to be run without docker installed in the `jenkins-slave` image. It also means that images required for building from the `Dockerfiles` will be cached in the cluster rather than being lost each time a slave pod is terminated.
 
 ### Teamcity
+
+The Teamcity build can be created using a standard project and build definition. Teamcity does not have a `Jenkinsfile` equivalent, therefore all of the build steps need to be configured within the Teamcity UI itself.
+
+Using the same sample application as the *Jenkins* example above, the Teamcity build steps would be almost exactly the same, with the commands within the Jenkins `sh("...")` blocks running as `Command Line` steps TODO
+
+As mentioned in *Docker in the Build Process*, the docker daemon can be mounted from the host kubernetes cluster. This allows the docker commands in the build steps to be run without docker installed in the `jenkins-slave` image. It also means that images required for building from the `Dockerfiles` will be cached in the cluster rather than being lost each time a slave pod is terminated.
 
 ### Deploying to another cluster
 
@@ -184,7 +219,15 @@ The following configuration variables are contained in the `utils/config.sh` scr
 
 ## Updating the Jenkins or Teamcity Images
 
-Change config variables AND image names in the yaml files
+By default, kubernetes uses an image pull policy of `IfNotPresent`, which means that if the image has already been pulled by kubernetes, it will never be fetched again as long as the image tag is unchanged. This means that if you make any changes to the image (or files included in it) but don't update the image tag, the changes won't be picked up by the kubernetes deployments.
+
+One way of avoiding this is to set the `imagePullPolicy` for the container(s) to `Always`.
+
+However, a better solution is to have a versioned image tag and always increment this version when the image is updated. This way the image will always be pulled when it is updated (as the tag has changed) and you will be able to roll back to previous versions of the image if necessary.
+
+See [here](https://kubernetes.io/docs/concepts/configuration/overview/#container-images) for more discussion.
+
+The Jenkins and Teamcity image names (including a versioned tag) are set using the `JENKINS_[MASTER/SLAVE]_IMAGE` and `TEAMCITY_[SERVER/AGENT]_IMAGE` config variables (see *Configuration Details*) respectively. These values are inserted into the kubernetes deployments by the `create-cluster.sh` script, so that they pick up the docker images built using the same tag.
 
 ## Costs
 
