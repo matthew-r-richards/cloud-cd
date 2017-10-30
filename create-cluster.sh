@@ -168,18 +168,27 @@ create() {
     echo "$BOLD---- Complete$NORMAL"
 }
 
-if [[ -z $1 ]] || [[ -z $2 ]] || [[ -z $3 ]]; then
-    echo Usage create-cluster.sh [jenkins/teamcity] [project-id] [path-to-key-file.json]
-    exit
-else
-    TYPE=$1
-    PROJECT_ID=$2
-    KEY_FILE=$3
+usage() {
+    echo "Usage: $0 -t <jenkins/teamcity> -p <project-id> -k <path-to-key-file.json>"
+}
+
+while getopts "t:p:k:" OPTION; do
+    case $OPTION in
+        t) TYPE=$OPTARG ;;
+        p) PROJECT_ID=$OPTARG ;;
+        k) KEY_FILE=$OPTARG ;;
+        *) usage; exit 1 ;;
+    esac
+done
+
+if [[ ! $TYPE ]] || [[ ! $PROJECT_ID ]] || [[ ! $KEY_FILE ]]; then
+    usage
+    exit 1
 fi
 
 if [[ ! -f $KEY_FILE ]]; then
     echo "Key file $KEY_FILE not found"
-    exit
+    exit 1
 fi
 
 if [[ $TYPE = "jenkins" ]]; then
@@ -217,7 +226,7 @@ elif [[ $TYPE = "teamcity" ]]; then
 else
 
     echo "Unknown deployment type: $TYPE"
-    exit
+    exit 1
     
 fi
 
