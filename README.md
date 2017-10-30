@@ -23,6 +23,12 @@ We want to create a K8S cluster on GKE with the following characteristics:
 
 ## Pre-requisites
 
+The following binaries need to be installed on the machine where the script will be executed:
+* `gcloud` - [instructions](https://cloud.google.com/sdk/downloads)
+* `kubectl` - `gcloud components install kubectl` or [instructions](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+* `openssl` - install using package manager
+* `docker` - [instructions](https://docs.docker.com/engine/installation/#supported-platforms) (Docker CE)
+
 ### Project
 
 A Google Cloud project is required in order to contain the cluster and all the related objects. After [creating a project](https://cloud.google.com/resource-manager/docs/creating-managing-projects), note down the `Project ID` (which may be different to the `Project Name`) for use in the setup script.
@@ -86,15 +92,28 @@ Once the ingress configuration is complete, going to the Teamcity URL should tak
 1) Accept the license agreement
 1) Create an Administrator account as required
 
+To include additional plugins when the Teamcity server image is built, place the downloaded plugin `.zip` files into the `teamcity/docker/plugins` folder. Any changes to the contents of this folder will require the `create-cluster.sh` script to be re-run to re-deploy the updated `tc-server` image (it is recommended to increment the version number as well, see *Updating the Jenkins or Teamcity Images*).
+
 Once the initial setup is complete, the remaining steps are:
 
+1) In **Server Admininstration > Global Settings**, configure the **Server URL** to be `http://teamcity:8111`. This allows the teamcity agents to connect to the teamcity service on the internally resolved service name. The default value is the external IP (i.e. the ingress IP) - with self-signed SSL certificates (as we have here), the agents will be unable to establish a connection.
 1) Create a Teamcity project to contain the build definitions
-1) In the administrator panel for the project, go to 'Cloud Profiles'
-TODO
-1) Configure the [Team City Kubernetes plugin](https://github.com/JetBrains/teamcity-kubernetes-plugin)
-1) (Optional, already done in `teamcity/k8s/deployment_teamcity.yaml`) Configure the agent deployment to give the agent pod access to the kubernetes cluster docker daemon - see *Docker in the Build Process*
+1) In the administrator panel for the project, go to 'Cloud Profiles'.
+1) Setup the [Team City Kubernetes plugin](https://github.com/JetBrains/teamcity-kubernetes-plugin) by clicking on 'Create new profile' and entering the following configuration:
 
-To include additional plugins when the Teamcity server image is built, place the downloaded plugin `.zip` files into the `teamcity/docker/plugins` folder. Any changes to the contents of this folder will require the `create-cluster.sh` script to be re-run to re-deploy the updated `tc-server` image (it is recommended to increment the version number as well, see *Updating the Jenkins or Teamcity Images*).
+    **Profile name** - e.g. `kubernetes`
+
+    **Cloud type** - `Kubernetes`
+
+    **Kubernetes API server URL** - `https://kubernetes.default`
+
+    **Kubernetes Namespace** - `teamcity` (click on the icon to pick from available namespaces)
+
+    **Authentication Strategy** - `Default Service Account`
+
+    **Agent images** - Add an image, with **Pod Specification** set to `Use pod template from deployment` and the **Deployment name** as `tc-agent` (click on the icon to pick from available deployments). Select `<project pool>` for the **Agent pool**.
+
+At this point, Teamcity is ready for build steps to be defined. These builds will run in one or more pods in the cluster, based on the template defined in step *3* above.
 
 ### Docker in the Build Process
 
@@ -167,7 +186,7 @@ As mentioned in *Docker in the Build Process*, the docker daemon can be mounted 
 
 The Teamcity build can be created using a standard project and build definition. Teamcity does not have a `Jenkinsfile` equivalent, therefore all of the build steps need to be configured within the Teamcity UI itself.
 
-Using the same sample application as the *Jenkins* example above, the Teamcity build steps would be almost exactly the same, with the commands within the Jenkins `sh("...")` blocks running as `Command Line` steps TODO
+Using the same sample application as the *Jenkins* example above, the Teamcity build steps would be almost exactly the same, with the commands within the Jenkins `sh("...")` blocks running as `Command Line` steps.
 
 As mentioned in *Docker in the Build Process*, the docker daemon can be mounted from the host kubernetes cluster. This allows the docker commands in the build steps to be run without docker installed in the `jenkins-slave` image. It also means that images required for building from the `Dockerfiles` will be cached in the cluster rather than being lost each time a slave pod is terminated.
 
@@ -175,7 +194,7 @@ As mentioned in *Docker in the Build Process*, the docker daemon can be mounted 
 
 By default, the build agent pod has access to the current cluster via a kubernetes service account (this is handled by the Jenkins/Teamcity plugins). In order to deploy to another cluster, the following may be required:
 
-* Authenticate with a different Google Cloud service account (if the current service account does not have access to the other cluster). This requires a service account key file as described in *Pre-requisities » Service Account*  
+* Authenticate with a different Google Cloud service account (if the current service account does not have access to the other cluster). This requires a service account key file as described in *Pre-requisities » Service Account*. The service account key file should be provided as a [kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/), as demonstrated by the `svc-account` secret created by `create-cluster.sh` and its use in the `tc-agent` deployment:  
   `gcloud auth activate-service-account [path-to-service-account-key.json]`
 
 * Authenticate `kubectl` for the other cluster  
