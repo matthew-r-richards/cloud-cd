@@ -47,14 +47,14 @@ A Google Cloud service account is required in order for the cluster setup script
 A setup BASH script has been included in the root of the repository, `create-cluster.sh`.
 This can be run using the following command:
 
-`create-cluster.sh [jenkins/teamcity] [project-id] [path-to-service-account-key.json]`
+`create-cluster.sh -t <jenkins/teamcity> -p <project-id> -k <path-to-service-account-key.json>`
 
 The service account key file and the Project ID must be obtained before running the script, see *Pre-requisites*.
 
 For example, to create a jenkins cluster in the `jenkins-cd` project, using the service account file `service-account.json`:
 
 1) Create the service account and export the key to `service-account.json` as described in *Pre-requisites » Service Account*
-1) Run `create-cluster.sh jenkins jenkins-cd service-account.json`
+1) Run `create-cluster.sh -t jenkins -p jenkins-cd -k service-account.json`
 
 The creation process will take several minutes. At the end of it, you will be given the IP address to access the system on.
 
