@@ -216,7 +216,9 @@ This script creates the following:
   * K8S [Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
     * JENKINS - `jenkins/k8s/deployment_jenkins.yaml` - `jenkins` (single master pod)
     * TEAMCITY - `teamcity/k8s/deployment_teamcity.yaml` - `tc-server` (single server pod) **AND** `tc-agent` (0 replicas, used as a template for Teamcity agents)
-  * K8S [Secret](https://kubernetes.io/docs/concepts/configuration/secret/) - defines the SSL certificate to be used in the ingress controller
+  * K8S [Secret](https://kubernetes.io/docs/concepts/configuration/secret/)
+    * `tls` - defines the SSL certificate to be used in the ingress controller
+    * TEAMCITY - `svc-account` - makes the service account key file available for use in `tc-agent` pods
   * K8S [TLS Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/#tls) - implicitly creates a GCE Load Balancer using a self-signed SSL certificate defined in the secret, with traffic restricted to HTTPS only. SSL termination is performed (i.e. cluster traffic is HTTP)
     * JENKINS - `jenkins/k8s/ingress_jenkins.yaml`
     * TEAMCITY - `teamcity/k8s/ingress_teamcity.yaml`
