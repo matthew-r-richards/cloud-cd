@@ -4,3 +4,4 @@ service-account.json
 deployment_jenkins.yaml
 deployment_teamcity.yaml
 .vscode
+teamcity/TeamCity_CloudCd*
